@@ -1,5 +1,5 @@
 {
-    "name": "gloudemans/shoppingcart",
+    "name": "darthsoup/shoppingcart",
     "description": "Laravel 4 Shoppingcart",
     "keywords": ["laravel", "shoppingcart"],
     "license": "MIT",
@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": ">=5.4.0",
-        "illuminate/support": "~5.0"
+        "illuminate/support": "5.0.*|5.1.*|5.2.*|5.3.*|5.4.*"
     },
     "require-dev": {
         "mockery/mockery": "~0.9",

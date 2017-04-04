@@ -11,7 +11,7 @@ class ShoppingcartServiceProvider extends ServiceProvider {
 	 */
 	public function register()
 	{
-		$this->app['cart'] = $this->app->share(function($app)
+		$this->app->singleton('cart', function($app)
 		{
 			$session = $app['session'];
 			$events = $app['events'];
