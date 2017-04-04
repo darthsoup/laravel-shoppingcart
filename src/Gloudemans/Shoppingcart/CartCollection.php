@@ -1,7 +1,9 @@
-<?php namespace Gloudemans\Shoppingcart;
+<?php
+
+namespace Gloudemans\Shoppingcart;
 
 use Illuminate\Support\Collection;
 
-class CartCollection extends Collection {
-
+class CartCollection extends Collection
+{
 }
