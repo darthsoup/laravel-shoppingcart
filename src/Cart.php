@@ -3,6 +3,7 @@
 namespace Gloudemans\Shoppingcart;
 
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Session\SessionManager;
 use Illuminate\Support\Collection;
 
 class Cart
@@ -48,7 +49,7 @@ class Cart
      * @param Illuminate\Session\SessionManager       $session Session class instance
      * @param \Illuminate\Contracts\Events\Dispatcher $event   Event class instance
      */
-    public function __construct($session, Dispatcher $event)
+    public function __construct(SessionManager $session, Dispatcher $event)
     {
         $this->session = $session;
         $this->event = $event;

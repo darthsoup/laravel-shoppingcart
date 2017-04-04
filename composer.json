@@ -1,12 +1,16 @@
 {
     "name": "darthsoup/shoppingcart",
-    "description": "Laravel 4 Shoppingcart",
+    "description": "Laravel 5 Shoppingcart",
     "keywords": ["laravel", "shoppingcart"],
     "license": "MIT",
     "authors": [
         {
             "name": "Rob Gloudemans",
             "email": "Rob_Gloudemans@hotmail.com"
+        },
+        {
+            "name": "Kevin Krummmnacker",
+            "email": "kevin.krummnacker@gmail.com"
         }
     ],
     "require": {
@@ -18,8 +22,8 @@
         "phpunit/phpunit": "~4.0"
     },
     "autoload": {
-        "psr-0": {
-            "Gloudemans\\Shoppingcart": "src/"
+        "psr-4": {
+            "Gloudemans\\Shoppingcart\\": "src/"
         }
     },
     "minimum-stability": "dev"

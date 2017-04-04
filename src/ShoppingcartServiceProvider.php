@@ -13,11 +13,6 @@ class ShoppingcartServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('cart', function ($app) {
-            $session = $app['session'];
-            $events = $app['events'];
-
-            return new Cart($session, $events);
-        });
+        $this->app->bind('cart', 'Gloudemans\Shoppingcart\Cart');
     }
 }
