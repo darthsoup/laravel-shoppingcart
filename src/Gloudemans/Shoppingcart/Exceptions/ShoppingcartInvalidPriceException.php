@@ -1,3 +1,7 @@
-<?php namespace Gloudemans\Shoppingcart\Exceptions;
+<?php
 
-class ShoppingcartInvalidPriceException extends \Exception {}
+namespace Gloudemans\Shoppingcart\Exceptions;
+
+class ShoppingcartInvalidPriceException extends \Exception
+{
+}
