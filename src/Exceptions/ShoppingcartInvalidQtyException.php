@@ -1,6 +1,6 @@
 <?php
 
-namespace Gloudemans\Shoppingcart\Exceptions;
+namespace DarthSoup\Cart\Exceptions;
 
 class ShoppingcartInvalidQtyException extends \Exception
 {

@@ -1,24 +1,28 @@
 <?php
 
-namespace Gloudemans\Shoppingcart;
+namespace DarthSoup\Cart;
 
+use DarthSoup\Cart\Contracts\CartContract;
+use DarthSoup\Cart\Exceptions\InstanceException;
+use DarthSoup\Cart\Exceptions\InvalidRowIDException;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\SessionManager;
 use Illuminate\Support\Collection;
 
-class Cart
+class Cart implements CartContract
 {
     /**
      * Session class instance.
      *
-     * @var Illuminate\Session\SessionManager
+     * @var \Illuminate\Session\SessionManager
      */
     protected $session;
 
     /**
      * Event class instance.
      *
-     * @var Illuminate\Events\Dispatcher
+     * @var \Illuminate\Events\Dispatcher
      */
     protected $event;
 
@@ -30,24 +34,10 @@ class Cart
     protected $instance;
 
     /**
-     * The Eloquent model a cart is associated with.
-     *
-     * @var string
-     */
-    protected $associatedModel;
-
-    /**
-     * An optional namespace for the associated model.
-     *
-     * @var string
-     */
-    protected $associatedModelNamespace;
-
-    /**
      * Constructor.
      *
-     * @param Illuminate\Session\SessionManager       $session Session class instance
-     * @param \Illuminate\Contracts\Events\Dispatcher $event   Event class instance
+     * @param \Illuminate\Session\SessionManager $session
+     * @param \Illuminate\Contracts\Events\Dispatcher $event
      */
     public function __construct(SessionManager $session, Dispatcher $event)
     {
@@ -58,16 +48,27 @@ class Cart
     }
 
     /**
+     * Get the current cart instance.
+     *
+     * @return string
+     */
+    protected function getInstance()
+    {
+        return 'cart.' . $this->instance;
+    }
+
+    /**
      * Set the current cart instance.
      *
      * @param string $instance Cart instance name
      *
-     * @return Gloudemans\Shoppingcart\Cart
+     * @return \DarthSoup\Cart\Cart
+     * @throws \DarthSoup\Cart\Exceptions\InstanceException
      */
     public function instance($instance = null)
     {
         if (empty($instance)) {
-            throw new Exceptions\ShoppingcartInstanceException();
+            throw new InstanceException();
         }
         $this->instance = $instance;
 
@@ -78,111 +79,111 @@ class Cart
     /**
      * Set the associated model.
      *
-     * @param string $modelName      The name of the model
-     * @param string $modelNamespace The namespace of the model
-     *
-     * @return void
+     * @param string $rowId
+     * @param string $model
+     * @return Cart
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
-    public function associate($modelName, $modelNamespace = null)
+    public function associate($rowId, $model)
     {
-        $this->associatedModel = $modelName;
-        $this->associatedModelNamespace = $modelNamespace;
-
-        if (!class_exists($modelNamespace.'\\'.$modelName)) {
-            throw new Exceptions\ShoppingcartUnknownModelException();
+        if (!class_exists($model)) {
+            throw new ModelNotFoundException("The supplied model {$model} does not exist.");
         }
-        // Return self so the method is chainable
+        $cartItem = $this->get($rowId);
+        $cartItem->associate($model);
+
+        $content = $this->getContent();
+        $content->put($cartItem->rowId, $cartItem);
+
+        $this->updateInstance($content);
+
         return $this;
     }
 
     /**
      * Add a row to the cart.
      *
-     * @param string|array $id      Unique ID of the item|Item formated as array|Array of items
-     * @param string       $name    Name of the item
-     * @param int          $qty     Item qty to add to the cart
-     * @param float        $price   Price of one item
-     * @param array        $options Array of additional options, such as 'size' or 'color'
+     * @param string|array $id Unique ID of the item|Item formatted as array|Array of items
+     * @param string $name Name of the item
+     * @param int $quantity Item qty to add to the cart
+     * @param float $price Price of one item
+     * @param array $options Array of additional options, such as 'size' or 'color'
+     *
+     * @return \DarthSoup\Cart\Item
+     * @throws \InvalidArgumentException
      */
-    public function add($id, $name = null, $qty = null, $price = null, array $options = [])
+    public function add($id, $name = null, $quantity = null, $price = null, array $options = [])
     {
         // If the first parameter is an array we need to call the add() function again
-        if (is_array($id)) {
-            // And if it's not only an array, but a multidimensional array, we need to
-            // recursively call the add function
-            if ($this->is_multi($id)) {
-                // Fire the cart.batch event
-                $this->event->fire('cart.batch', $id);
-
-                foreach ($id as $item) {
-                    $options = array_get($item, 'options', []);
-                    $this->addRow($item['id'], $item['name'], $item['qty'], $item['price'], $options);
-                }
-
-                // Fire the cart.batched event
-                $this->event->fire('cart.batched', $id);
-
-                return;
-            }
-
-            $options = array_get($id, 'options', []);
-
-            // Fire the cart.add event
-            $this->event->fire('cart.add', array_merge($id, ['options' => $options]));
-
-            $result = $this->addRow($id['id'], $id['name'], $id['qty'], $id['price'], $options);
-
-            // Fire the cart.added event
-            $this->event->fire('cart.added', array_merge($id, ['options' => $options]));
-
-            return $result;
+        if ($this->isMulti($id)) {
+            return array_map(function ($item) {
+                return $this->add($item);
+            }, $id);
         }
 
-        // Fire the cart.add event
-        $this->event->fire('cart.add', compact('id', 'name', 'qty', 'price', 'options'));
+        $item = $this->addItem($id, $name, $quantity, $price, $options);
 
-        $result = $this->addRow($id, $name, $qty, $price, $options);
+        $cart = $this->getContent();
 
-        // Fire the cart.added event
-        $this->event->fire('cart.added', compact('id', 'name', 'qty', 'price', 'options'));
+        // increase quantity
+        if ($cart->has($item->rowId)) {
+            $item->quantity += $cart->get($item->rowId)->quantity;
+        }
 
-        return $result;
+        // Insert item to Cart
+        $cart->put($item->rowId, $item);
+
+        $this->event->fire('cart.added', $item);
+
+        $this->updateInstance($cart);
+
+        return $item;
+    }
+
+    /**
+     * @param $id
+     * @param $name
+     * @param $quantity
+     * @param $price
+     * @param array $options
+     * @return Item
+     * @throws \InvalidArgumentException
+     */
+    protected function addItem($id, $name, $quantity, $price, array $options = [])
+    {
+        if (is_array($id)) {
+            $cartItem = Item::fromArray($id);
+            $cartItem->setQuantity($id['quantity']);
+        } else {
+            $cartItem = Item::fromAttributes($id, $name, $price, $options);
+            $cartItem->setQuantity($quantity);
+        }
+
+        $cartItem->setTaxRate(config('cart.tax', 19));
+
+        return $cartItem;
     }
 
     /**
      * Update the quantity of one row of the cart.
      *
-     * @param string    $rowId     The rowid of the item you want to update
+     * @param string $rowId The rowid of the item you want to update
      * @param int|array $attribute New quantity of the item|Array of attributes to update
      *
-     * @return bool
+     * @throws \DarthSoup\Cart\Exceptions\InvalidRowIDException
      */
     public function update($rowId, $attribute)
     {
-        if (!$this->hasRowId($rowId)) {
-            throw new Exceptions\ShoppingcartInvalidRowIDException();
-        }
-        if (is_array($attribute)) {
-            // Fire the cart.update event
-            $this->event->fire('cart.update', $rowId);
+        $item = $this->get($rowId);
 
-            $result = $this->updateAttribute($rowId, $attribute);
+        $cart = $this->getContent();
 
-            // Fire the cart.updated event
-            $this->event->fire('cart.updated', $rowId);
-
-            return $result;
-        }
-
-        // Fire the cart.update event
-        $this->event->fire('cart.update', $rowId);
-
-        $result = $this->updateQty($rowId, $attribute);
+        $cart->forget($item->rowId);
 
         // Fire the cart.updated event
         $this->event->fire('cart.updated', $rowId);
 
-        return $result;
+        $this->updateInstance($cart);
     }
 
     /**
@@ -194,46 +195,60 @@ class Cart
      */
     public function remove($rowId)
     {
-        if (!$this->hasRowId($rowId)) {
-            throw new Exceptions\ShoppingcartInvalidRowIDException();
-        }
+        $item = $this->get($rowId);
+
         $cart = $this->getContent();
 
-        // Fire the cart.remove event
-        $this->event->fire('cart.remove', $rowId);
-
-        $cart->forget($rowId);
+        $cart->forget($item->rowId);
 
         // Fire the cart.removed event
         $this->event->fire('cart.removed', $rowId);
 
-        return $this->updateCart($cart);
+        $this->updateInstance($cart);
     }
 
     /**
-     * Get a row of the cart by its ID.
+     * Get a item of the cart by its ID.
      *
-     * @param string $rowId The ID of the row to fetch
+     * @param string $rowId
      *
-     * @return Gloudemans\Shoppingcart\CartCollection
+     * @return Item
      */
     public function get($rowId)
     {
         $cart = $this->getContent();
 
-        return ($cart->has($rowId)) ? $cart->get($rowId) : null;
+        if (!$cart->has($rowId)) {
+            throw new InvalidRowIDException("The cart does not contain rowId {$rowId}.");
+        }
+        return $cart->get($rowId);
+    }
+
+    /**
+     * Check if a rowId exists in the current cart instance.
+     *
+     * @param $rowId
+     * @return bool
+     */
+    protected function has($rowId)
+    {
+        return $this->getContent()->has($rowId);
     }
 
     /**
      * Get the cart content.
      *
-     * @return Gloudemans\Shoppingcart\CartRowCollection
+     * @return Collection
      */
     public function content()
     {
         $cart = $this->getContent();
 
-        return (empty($cart)) ? null : $cart;
+        if (!empty($cart)) {
+            return $cart;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -243,10 +258,7 @@ class Cart
      */
     public function destroy()
     {
-        // Fire the cart.destroy event
-        $this->event->fire('cart.destroy');
-
-        $result = $this->updateCart(null);
+        $result = $this->updateInstance(null);
 
         // Fire the cart.destroyed event
         $this->event->fire('cart.destroyed');
@@ -278,251 +290,72 @@ class Cart
     /**
      * Get the number of items in the cart.
      *
-     * @param bool $totalItems Get all the items (when false, will return the number of rows)
-     *
      * @return int
      */
-    public function count($totalItems = true)
+    public function count()
     {
-        $cart = $this->getContent();
-
-        if (!$totalItems) {
-            return $cart->count();
-        }
-
-        $count = 0;
-
-        foreach ($cart as $row) {
-            $count += $row->qty;
-        }
-
-        return $count;
+        return $this->getContent()->sum('quantity');
     }
 
     /**
      * Search if the cart has a item.
      *
-     * @param array $search An array with the item ID and optional options
-     *
-     * @return array|bool
+     * @param \Closure $search
+     * @return \Illuminate\Support\Collection
      */
-    public function search(array $search)
+    public function search(\Closure $search)
     {
-        if (empty($search)) {
-            return false;
-        }
-
-        foreach ($this->getContent() as $item) {
-            $found = $item->search($search);
-
-            if ($found) {
-                $rows[] = $item->rowid;
-            }
-        }
-
-        return (empty($rows)) ? false : $rows;
-    }
-
-    /**
-     * Add row to the cart.
-     *
-     * @param string $id      Unique ID of the item
-     * @param string $name    Name of the item
-     * @param int    $qty     Item qty to add to the cart
-     * @param float  $price   Price of one item
-     * @param array  $options Array of additional options, such as 'size' or 'color'
-     */
-    protected function addRow($id, $name, $qty, $price, array $options = [])
-    {
-        if (empty($id) || empty($name) || empty($qty) || !isset($price)) {
-            throw new Exceptions\ShoppingcartInvalidItemException();
-        }
-
-        if (!is_numeric($qty)) {
-            throw new Exceptions\ShoppingcartInvalidQtyException();
-        }
-
-        if (!is_numeric($price)) {
-            throw new Exceptions\ShoppingcartInvalidPriceException();
-        }
-
         $cart = $this->getContent();
 
-        $rowId = $this->generateRowId($id, $options);
-
-        if ($cart->has($rowId)) {
-            $row = $cart->get($rowId);
-            $cart = $this->updateRow($rowId, ['qty' => $row->qty + $qty]);
-        } else {
-            $cart = $this->createRow($rowId, $id, $name, $qty, $price, $options);
-        }
-
-        return $this->updateCart($cart);
+        return $cart->filter($search);
     }
 
-    /**
-     * Generate a unique id for the new row.
-     *
-     * @param string $id      Unique ID of the item
-     * @param array  $options Array of additional options, such as 'size' or 'color'
-     *
-     * @return bool
-     */
-    protected function generateRowId($id, $options)
-    {
-        ksort($options);
-
-        return md5($id.serialize($options));
-    }
 
     /**
-     * Check if a rowid exists in the current cart instance.
+     * Get the carts content, if there is no cart content set yet, return a new empty Collection.
      *
-     * @param string $id Unique ID of the item
-     *
-     * @return bool
+     * @return Collection
      */
-    protected function hasRowId($rowId)
+    protected function getContent()
     {
-        return $this->getContent()->has($rowId);
+        $cart = $this->session->has($this->getInstance())
+            ? $this->session->get($this->getInstance())
+            : new Collection();
+
+        return $cart;
     }
 
     /**
      * Update the cart.
      *
-     * @param Gloudemans\Shoppingcart\CartCollection $cart The new cart content
-     *
-     * @return void
+     * @param Collection $cart The new cart content
      */
-    protected function updateCart($cart)
+    protected function updateInstance($cart)
     {
         return $this->session->put($this->getInstance(), $cart);
     }
 
     /**
-     * Get the carts content, if there is no cart content set yet, return a new empty Collection.
-     *
-     * @return Gloudemans\Shoppingcart\CartCollection
-     */
-    protected function getContent()
-    {
-        $content = ($this->session->has($this->getInstance())) ? $this->session->get($this->getInstance()) : new CartCollection();
-
-        return $content;
-    }
-
-    /**
-     * Get the current cart instance.
-     *
-     * @return string
-     */
-    protected function getInstance()
-    {
-        return 'cart.'.$this->instance;
-    }
-
-    /**
-     * Update a row if the rowId already exists.
-     *
-     * @param string $rowId The ID of the row to update
-     * @param int    $qty   The quantity to add to the row
-     *
-     * @return Gloudemans\Shoppingcart\CartCollection
-     */
-    protected function updateRow($rowId, $attributes)
-    {
-        $cart = $this->getContent();
-
-        $row = $cart->get($rowId);
-
-        foreach ($attributes as $key => $value) {
-            if ($key == 'options') {
-                $options = $row->options->merge($value);
-                $row->put($key, $options);
-            } else {
-                $row->put($key, $value);
-            }
-        }
-
-        if (!is_null(array_keys($attributes, ['qty', 'price']))) {
-            $row->put('subtotal', $row->qty * $row->price);
-        }
-
-        $cart->put($rowId, $row);
-
-        return $cart;
-    }
-
-    /**
-     * Create a new row Object.
-     *
-     * @param string $rowId   The ID of the new row
-     * @param string $id      Unique ID of the item
-     * @param string $name    Name of the item
-     * @param int    $qty     Item qty to add to the cart
-     * @param float  $price   Price of one item
-     * @param array  $options Array of additional options, such as 'size' or 'color'
-     *
-     * @return Gloudemans\Shoppingcart\CartCollection
-     */
-    protected function createRow($rowId, $id, $name, $qty, $price, $options)
-    {
-        $cart = $this->getContent();
-
-        $newRow = new CartRowCollection([
-            'rowid'    => $rowId,
-            'id'       => $id,
-            'name'     => $name,
-            'qty'      => $qty,
-            'price'    => $price,
-            'options'  => new CartRowOptionsCollection($options),
-            'subtotal' => $qty * $price,
-        ], $this->associatedModel, $this->associatedModelNamespace);
-
-        $cart->put($rowId, $newRow);
-
-        return $cart;
-    }
-
-    /**
-     * Update the quantity of a row.
-     *
-     * @param string $rowId The ID of the row
-     * @param int    $qty   The qty to add
-     *
-     * @return Gloudemans\Shoppingcart\CartCollection
-     */
-    protected function updateQty($rowId, $qty)
-    {
-        if ($qty <= 0) {
-            return $this->remove($rowId);
-        }
-
-        return $this->updateRow($rowId, ['qty' => $qty]);
-    }
-
-    /**
-     * Update an attribute of the row.
-     *
-     * @param string $rowId      The ID of the row
-     * @param array  $attributes An array of attributes to update
-     *
-     * @return Gloudemans\Shoppingcart\CartCollection
-     */
-    protected function updateAttribute($rowId, $attributes)
-    {
-        return $this->updateRow($rowId, $attributes);
-    }
-
-    /**
      * Check if the array is a multidimensional array.
      *
-     * @param array $array The array to check
+     * @param array $id The array to check
      *
      * @return bool
      */
-    protected function is_multi(array $array)
+    protected function isMulti($id)
     {
-        return is_array(head($array));
+        if (!is_array($id)) return false;
+
+        return is_array(head($id));
+    }
+
+    /**
+     * Check if Collection is empty
+     *
+     * @return bool
+     */
+    public function isEmpty()
+    {
+        return $this->getContent()->isEmpty();
     }
 }

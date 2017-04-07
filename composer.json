@@ -23,7 +23,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Gloudemans\\Shoppingcart\\": "src/"
+            "DarthSoup\\Cart\\": "src/"
         }
     },
     "minimum-stability": "dev"
