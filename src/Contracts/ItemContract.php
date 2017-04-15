@@ -8,5 +8,10 @@ namespace DarthSoup\Cart\Contracts;
  */
 interface ItemContract
 {
-
+    /**
+     * Return item identifier
+     *
+     * @return string
+     */
+    public function getRowId();
 }

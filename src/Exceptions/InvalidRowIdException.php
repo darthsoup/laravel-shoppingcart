@@ -3,11 +3,11 @@
 namespace DarthSoup\Cart\Exceptions;
 
 /**
- * InstanceException
+ * InvalidRowIdException
  *
  * @package DarthSoup\Cart\Exceptions
  */
-class InstanceException extends \Exception
+class InvalidRowIdException extends \RuntimeException
 {
 
 }

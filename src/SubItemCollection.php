@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 /**
  * @package DarthSoup\Cart
  */
-class CartItemOptions extends Collection
+class SubItemCollection extends Collection
 {
     public function __get($arg)
     {

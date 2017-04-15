@@ -6,11 +6,11 @@ use DarthSoup\Cart\Contracts\ItemContract;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 
 /**
- * Class CartItem
+ * Item Class
  *
- * @author Kevin Krummnacker <kk@dogado.de>
  * @package DarthSoup\Cart
  */
 class Item implements ItemContract, Arrayable, Jsonable
@@ -25,7 +25,7 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * The ID of the cart item.
      *
-     * @var int|string
+     * @var string
      */
     public $id;
 
@@ -39,7 +39,7 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * The quantity for this cart item.
      *
-     * @var int|float
+     * @var int
      */
     public $quantity;
 
@@ -58,18 +58,25 @@ class Item implements ItemContract, Arrayable, Jsonable
     public $options;
 
     /**
+     * The Collection for the subitems
+     *
+     * @var SubItemCollection
+     */
+    public $subItems;
+
+    /**
      * The FQN of the associated model.
      *
      * @var string|null
      */
-    private $associatedModel;
+    protected $associatedModel;
 
     /**
      * The tax rate for the cart item.
      *
      * @var int|float
      */
-    private $taxRate = 0;
+    protected $taxRate = 0;
 
     /**
      * CartItem constructor.
@@ -78,20 +85,15 @@ class Item implements ItemContract, Arrayable, Jsonable
      * @param string $name
      * @param float $price
      * @param array $options
-     * @throws \InvalidArgumentException
      */
-    public function __construct($id, $name, $price, array $options = [])
+    public function __construct($id, string $name, float $price = null, array $options = [])
     {
         if (empty($id)) {
-            throw new \InvalidArgumentException('Please supply a valid identifier.');
+            throw new \InvalidArgumentException('Please enter a valid identifier.');
         }
 
         if (empty($name)) {
-            throw new \InvalidArgumentException('Please supply a valid name.');
-        }
-
-        if (strlen($price) < 0 || !is_numeric($price)) {
-            throw new \InvalidArgumentException('Please supply a valid price.');
+            throw new \InvalidArgumentException('Please enter a valid name.');
         }
 
         $this->rowId = $this->generateRowId($id, $options);
@@ -99,6 +101,7 @@ class Item implements ItemContract, Arrayable, Jsonable
         $this->name = $name;
         $this->price = (float) $price;
         $this->options = new CartItemOptions($options);
+        $this->subItems = new SubItemCollection();
     }
 
     /**
@@ -115,6 +118,62 @@ class Item implements ItemContract, Arrayable, Jsonable
     }
 
     /**
+     * Add a SubItem to the SubItemCollection
+     *
+     * @param Item $subItem
+     */
+    public function addSubItem(Item $subItem)
+    {
+        $this->subItems->put($subItem->rowId, $subItem);
+    }
+
+    /**
+     * @param Item $subItem
+     */
+    public function removeSubItem(Item $subItem)
+    {
+        $this->subItems->forget($subItem->rowId);
+    }
+
+    /**
+     * Update the cart item from an array.
+     *
+     * @param array $attributes
+     * @return void
+     */
+    public function updateFromArray(array $attributes)
+    {
+        $this->id = Arr::get($attributes, 'id', $this->id);
+        $this->quantity = Arr::get($attributes, 'qty', $this->quantity);
+        $this->name = Arr::get($attributes, 'name', $this->name);
+        $this->price = Arr::get($attributes, 'price', $this->price);
+        $this->priceTax = $this->price + $this->tax;
+        $this->options = $this->options->merge(
+            new CartItemOptions(Arr::get($attributes, 'options', $this->options))
+        );
+    }
+
+    /**
+     * Update the cart item from an array.
+     *
+     * @param string $id
+     * @param string $name
+     * @param int $quantity
+     * @param float $price
+     * @param array $options
+     * @return void
+     */
+    public function updateFromAttributes(string $id, string $name = null, int $quantity = null, float $price = null, array $options = [])
+    {
+        $this->id = $id;
+        $this->name = $name ?? $this->name;
+        $this->quantity = $quantity ?? $this->quantity;
+        $this->price = $price ?? $this->price;
+        $this->priceTax = $price + $this->tax;
+        $this->options = $this->options->merge($options);
+    }
+
+    /**
      * Create a new instance from the given array.
      *
      * @param array $attributes
@@ -122,7 +181,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     public static function fromArray(array $attributes)
     {
-        $options = array_get($attributes, 'options', []);
+        $options = Arr::get($attributes, 'options', []);
 
         return new self($attributes['id'], $attributes['name'], $attributes['price'], $options);
     }
@@ -135,9 +194,8 @@ class Item implements ItemContract, Arrayable, Jsonable
      * @param float $price
      * @param array $options
      * @return Item
-     * @throws \InvalidArgumentException
      */
-    public static function fromAttributes($id, $name, $price, array $options = [])
+    public static function fromAttributes(string $id, string $name, float $price = null, array $options = [])
     {
         return new self($id, $name, $price, $options);
     }
@@ -158,15 +216,10 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * Set the quantity for this cart item.
      *
-     * @param int|float $quantity
-     * @throws \InvalidArgumentException
+     * @param int $quantity
      */
-    public function setQuantity($quantity)
+    public function setQuantity(int $quantity)
     {
-        if (empty($quantity) || !is_numeric($quantity)) {
-            throw new \InvalidArgumentException('Please supply a valid quantity.');
-        }
-
         $this->quantity = $quantity;
     }
 
@@ -177,15 +230,15 @@ class Item implements ItemContract, Arrayable, Jsonable
      * @param array $options
      * @return string
      */
-    protected function generateRowId($id, array $options)
+    protected function generateRowId(string $id, array $options)
     {
-        Arr::sortRecursive($options);
+        $options = Arr::sortRecursive($options);
 
         return md5($id . serialize($options));
     }
 
     /**
-     * Get the instance as an array.
+     * Get the item as an array.
      *
      * @return array
      */
@@ -196,19 +249,12 @@ class Item implements ItemContract, Arrayable, Jsonable
             'id' => $this->id,
             'name' => $this->name,
             'quantity' => $this->quantity,
-            'price' => $this->price,
+            'price' => (float) $this->price,
             'options' => $this->options,
-            //'tax' => $this->tax,
-            //'subtotal' => $this->subtotal
+            'tax' => $this->tax,
+            'subtotal' => $this->subtotal,
+            'model' => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
         ];
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Model
-     */
-    public function getModel()
-    {
-        return with(new $this->associatedModel)->find($this->id);
     }
 
     /**
@@ -223,6 +269,30 @@ class Item implements ItemContract, Arrayable, Jsonable
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    public function getModel()
+    {
+        return with(new $this->associatedModel)->find($this->id);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAssociated(): bool
+    {
+        return isset($this->associatedModel);
+    }
+
+    /**
+     * @return string
+     */
+    public function getRowId(): string
+    {
+        return $this->rowId;
+    }
+
+    /**
      * Get an attribute from the cart item or get the associated model.
      *
      * @param string $attribute
@@ -233,8 +303,25 @@ class Item implements ItemContract, Arrayable, Jsonable
         if (property_exists($this, $attribute)) {
             return $this->{$attribute};
         }
+
+        if ($attribute === 'priceTax') {
+            return $this->price + $this->tax;
+        }
+
+        if ($attribute === 'subtotal') {
+            return $this->quantity * $this->price;
+        }
+
+        if ($attribute === 'total') {
+            return $this->quantity * ($this->priceTax);
+        }
+
+        if ($attribute === 'tax') {
+            return $this->price * ($this->taxRate / 100);
+        }
+
         if ($attribute === 'model') {
-            return with(new $this->associatedModel)->find($this->id);
+            return $this->getModel();
         }
 
         return null;
