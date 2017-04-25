@@ -140,7 +140,7 @@ class Cart implements CartContract
         $cart = $this->getContent();
 
         // increase quantity
-        if ($cart->has($item->rowId)) {
+        if ($cart->has($item->getRowId())) {
             $item->quantity += $cart->get($item->rowId)->quantity;
         }
 
@@ -195,10 +195,10 @@ class Cart implements CartContract
     }
 
     /**
-     * Update the quantity of one row of the cart.
+     * Update the quantity or attributes of one item of the cart.
      *
      * @param string $rowId The rowId of the item you want to update
-     * @param int|array $attribute New quantity of the item|Array of attributes to update
+     * @param int|array $attribute New quantity of the item|array of attributes to update
      *
      * @return Item
      * @throws \DarthSoup\Cart\Exceptions\InvalidRowIdException
@@ -264,7 +264,6 @@ class Cart implements CartContract
      * Get a item of the cart by its ID.
      *
      * @param string $rowId
-     *
      * @return Item
      */
     public function get($rowId)
@@ -277,6 +276,17 @@ class Cart implements CartContract
         return $cart->get($rowId);
     }
 
+    /**
+     * Get a item of the cart by its ID.
+     *
+     * @param string $rowId
+     *
+     * @return bool
+     */
+    public function has($rowId): bool
+    {
+        return $this->getContent()->has($rowId);
+    }
 
     /**
      * Get the cart content.
@@ -363,7 +373,7 @@ class Cart implements CartContract
      *
      * @return CartCollection
      */
-    protected function getContent(): CartCollection
+    private function getContent(): CartCollection
     {
         $cart = $this->session->has($this->getInstance())
             ? $this->session->get($this->getInstance())
@@ -377,7 +387,7 @@ class Cart implements CartContract
      *
      * @param CartCollection $cart
      */
-    protected function updateInstance($cart)
+    private function updateInstance($cart)
     {
         return $this->session->put($this->getInstance(), $cart);
     }

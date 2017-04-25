@@ -2,6 +2,7 @@
 
 namespace DarthSoup\Cart;
 
+use Carbon\Carbon;
 use DarthSoup\Cart\Contracts\ItemContract;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
@@ -65,6 +66,20 @@ class Item implements ItemContract, Arrayable, Jsonable
     public $subItems;
 
     /**
+     * Created at
+     *
+     * @var Carbon
+     */
+    protected $created_at;
+
+    /**
+     * Updated at
+     *
+     * @var Carbon
+     */
+    protected $updated_at;
+
+    /**
      * The FQN of the associated model.
      *
      * @var string|null
@@ -102,6 +117,8 @@ class Item implements ItemContract, Arrayable, Jsonable
         $this->price = (float) $price;
         $this->options = new CartItemOptions($options);
         $this->subItems = new SubItemCollection();
+        $this->created_at = $this->freshTimestamp();
+        $this->updated_at = $this->freshTimestamp();
     }
 
     /**
@@ -125,6 +142,8 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function addSubItem(Item $subItem)
     {
         $this->subItems->put($subItem->rowId, $subItem);
+
+        $this->updated_at = $this->freshTimestamp();
     }
 
     /**
@@ -133,6 +152,8 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function removeSubItem(Item $subItem)
     {
         $this->subItems->forget($subItem->rowId);
+
+        $this->updated_at = $this->freshTimestamp();
     }
 
     /**
@@ -144,13 +165,15 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function updateFromArray(array $attributes)
     {
         $this->id = Arr::get($attributes, 'id', $this->id);
-        $this->quantity = Arr::get($attributes, 'qty', $this->quantity);
+        $this->quantity = Arr::get($attributes, 'quantity', $this->quantity);
         $this->name = Arr::get($attributes, 'name', $this->name);
         $this->price = Arr::get($attributes, 'price', $this->price);
         $this->priceTax = $this->price + $this->tax;
         $this->options = $this->options->merge(
             new CartItemOptions(Arr::get($attributes, 'options', $this->options))
         );
+
+        $this->updated_at = $this->freshTimestamp();
     }
 
     /**
@@ -171,6 +194,8 @@ class Item implements ItemContract, Arrayable, Jsonable
         $this->price = $price ?? $this->price;
         $this->priceTax = $price + $this->tax;
         $this->options = $this->options->merge($options);
+
+        $this->updated_at = $this->freshTimestamp();
     }
 
     /**
@@ -250,10 +275,12 @@ class Item implements ItemContract, Arrayable, Jsonable
             'name' => $this->name,
             'quantity' => $this->quantity,
             'price' => (float) $this->price,
-            'options' => $this->options,
+            'options' => $this->options->toArray(),
             'tax' => $this->tax,
             'subtotal' => $this->subtotal,
             'model' => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
+            'created_at' => $this->created_at->getTimestamp(),
+            'updated_at' => $this->updated_at->getTimestamp(),
         ];
     }
 
@@ -290,6 +317,16 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function getRowId(): string
     {
         return $this->rowId;
+    }
+
+    /**
+     * Get a fresh timestamp for the model.
+     *
+     * @return \Carbon\Carbon
+     */
+    public function freshTimestamp(): Carbon
+    {
+        return new Carbon;
     }
 
     /**
