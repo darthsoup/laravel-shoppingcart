@@ -3,13 +3,12 @@
 namespace DarthSoup\Cart\Contracts;
 
 /**
- * Interface ItemContract
- * @package DarthSoup\Cart\Contracts
+ * Interface ItemContract.
  */
 interface ItemContract
 {
     /**
-     * Return item identifier
+     * Return item identifier.
      *
      * @return string
      */
