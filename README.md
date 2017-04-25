@@ -13,6 +13,7 @@ This package for shopping carts provides these features:
 * Individual taxing for single items //todo
 * Custom hash algorithms for item identifiers //todo
 * Database Support //todo
+* Unit tests //todo
 
 ## Installation
 
