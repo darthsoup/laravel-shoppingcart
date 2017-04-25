@@ -5,7 +5,7 @@ namespace DarthSoup\Cart;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Class CartServiceProvider
+ * Class CartServiceProvider.
  */
 class CartServiceProvider extends ServiceProvider
 {

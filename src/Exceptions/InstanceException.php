@@ -3,11 +3,8 @@
 namespace DarthSoup\Cart\Exceptions;
 
 /**
- * InstanceException
- *
- * @package DarthSoup\Cart\Exceptions
+ * InstanceException.
  */
 class InstanceException extends \Exception
 {
-
 }

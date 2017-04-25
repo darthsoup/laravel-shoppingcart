@@ -3,11 +3,8 @@
 namespace DarthSoup\Cart\Exceptions;
 
 /**
- * ClassNotFoundException
- *
- * @package DarthSoup\Cart\Exceptions
+ * ClassNotFoundException.
  */
 class ClassNotFoundException extends \ErrorException
 {
-
 }

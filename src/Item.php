@@ -10,9 +10,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 /**
- * Item Class
- *
- * @package DarthSoup\Cart
+ * Item Class.
  */
 class Item implements ItemContract, Arrayable, Jsonable
 {
@@ -59,21 +57,21 @@ class Item implements ItemContract, Arrayable, Jsonable
     public $options;
 
     /**
-     * The Collection for the subitems
+     * The Collection for the subitems.
      *
      * @var SubItemCollection
      */
     public $subItems;
 
     /**
-     * Created at
+     * Created at.
      *
      * @var Carbon
      */
     protected $created_at;
 
     /**
-     * Updated at
+     * Updated at.
      *
      * @var Carbon
      */
@@ -97,9 +95,9 @@ class Item implements ItemContract, Arrayable, Jsonable
      * CartItem constructor.
      *
      * @param int|string $id
-     * @param string $name
-     * @param float $price
-     * @param array $options
+     * @param string     $name
+     * @param float      $price
+     * @param array      $options
      */
     public function __construct($id, string $name, float $price = null, array $options = [])
     {
@@ -125,6 +123,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      * Associate the cart item with the given model.
      *
      * @param mixed $model
+     *
      * @return Item
      */
     public function associate($model)
@@ -135,7 +134,7 @@ class Item implements ItemContract, Arrayable, Jsonable
     }
 
     /**
-     * Add a SubItem to the SubItemCollection
+     * Add a SubItem to the SubItemCollection.
      *
      * @param Item $subItem
      */
@@ -160,6 +159,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      * Update the cart item from an array.
      *
      * @param array $attributes
+     *
      * @return void
      */
     public function updateFromArray(array $attributes)
@@ -181,9 +181,10 @@ class Item implements ItemContract, Arrayable, Jsonable
      *
      * @param string $id
      * @param string $name
-     * @param int $quantity
-     * @param float $price
-     * @param array $options
+     * @param int    $quantity
+     * @param float  $price
+     * @param array  $options
+     *
      * @return void
      */
     public function updateFromAttributes(string $id, string $name = null, int $quantity = null, float $price = null, array $options = [])
@@ -202,6 +203,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      * Create a new instance from the given array.
      *
      * @param array $attributes
+     *
      * @return Item
      */
     public static function fromArray(array $attributes)
@@ -215,9 +217,10 @@ class Item implements ItemContract, Arrayable, Jsonable
      * Create a new instance from the given attributes.
      *
      * @param int|string $id
-     * @param string $name
-     * @param float $price
-     * @param array $options
+     * @param string     $name
+     * @param float      $price
+     * @param array      $options
+     *
      * @return Item
      */
     public static function fromAttributes(string $id, string $name, float $price = null, array $options = [])
@@ -229,6 +232,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      * Set the tax rate.
      *
      * @param int|float $taxRate
+     *
      * @return Item
      */
     public function setTaxRate($taxRate)
@@ -252,14 +256,15 @@ class Item implements ItemContract, Arrayable, Jsonable
      * Generate a unique id for the cart item.
      *
      * @param string $id
-     * @param array $options
+     * @param array  $options
+     *
      * @return string
      */
     protected function generateRowId(string $id, array $options)
     {
         $options = Arr::sortRecursive($options);
 
-        return md5($id . serialize($options));
+        return md5($id.serialize($options));
     }
 
     /**
@@ -270,15 +275,15 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function toArray()
     {
         return [
-            'rowId' => $this->rowId,
-            'id' => $this->id,
-            'name' => $this->name,
-            'quantity' => $this->quantity,
-            'price' => (float) $this->price,
-            'options' => $this->options->toArray(),
-            'tax' => $this->tax,
-            'subtotal' => $this->subtotal,
-            'model' => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
+            'rowId'      => $this->rowId,
+            'id'         => $this->id,
+            'name'       => $this->name,
+            'quantity'   => $this->quantity,
+            'price'      => (float) $this->price,
+            'options'    => $this->options->toArray(),
+            'tax'        => $this->tax,
+            'subtotal'   => $this->subtotal,
+            'model'      => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
             'created_at' => $this->created_at->getTimestamp(),
             'updated_at' => $this->updated_at->getTimestamp(),
         ];
@@ -287,7 +292,8 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * Convert the object to its JSON representation.
      *
-     * @param  int $options
+     * @param int $options
+     *
      * @return string
      */
     public function toJson($options = 0)
@@ -300,7 +306,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     public function getModel()
     {
-        return with(new $this->associatedModel)->find($this->id);
+        return with(new $this->associatedModel())->find($this->id);
     }
 
     /**
@@ -326,13 +332,14 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     public function freshTimestamp(): Carbon
     {
-        return new Carbon;
+        return new Carbon();
     }
 
     /**
      * Get an attribute from the cart item or get the associated model.
      *
      * @param string $attribute
+     *
      * @return mixed
      */
     public function __get($attribute)
@@ -360,7 +367,5 @@ class Item implements ItemContract, Arrayable, Jsonable
         if ($attribute === 'model') {
             return $this->getModel();
         }
-
-        return null;
     }
 }

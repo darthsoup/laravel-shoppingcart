@@ -3,7 +3,7 @@
 namespace DarthSoup\Cart\Contracts;
 
 /**
- * Interface CartContract
+ * Interface CartContract.
  */
 interface CartContract
 {

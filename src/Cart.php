@@ -10,9 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\SessionManager;
 
 /**
- * Cart Class
- * 
- * @package DarthSoup\Cart
+ * Cart Class.
  */
 class Cart implements CartContract
 {
@@ -40,7 +38,7 @@ class Cart implements CartContract
     /**
      * Constructor.
      *
-     * @param \Illuminate\Session\SessionManager $session
+     * @param \Illuminate\Session\SessionManager      $session
      * @param \Illuminate\Contracts\Events\Dispatcher $event
      */
     public function __construct(SessionManager $session, Dispatcher $event)
@@ -58,11 +56,11 @@ class Cart implements CartContract
      */
     protected function getInstance(): string
     {
-        return 'cart.' . $this->instance;
+        return 'cart.'.$this->instance;
     }
 
     /**
-     * Return the current instance
+     * Return the current instance.
      *
      * @return string
      */
@@ -76,8 +74,9 @@ class Cart implements CartContract
      *
      * @param string|null $instance
      *
-     * @return \DarthSoup\Cart\Cart
      * @throws \DarthSoup\Cart\Exceptions\InstanceException
+     *
+     * @return \DarthSoup\Cart\Cart
      */
     public function instance($instance = null)
     {
@@ -96,8 +95,9 @@ class Cart implements CartContract
      * @param string $rowId
      * @param string $model
      *
-     * @return Cart
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     *
+     * @return Cart
      */
     public function associate($rowId, $model)
     {
@@ -118,11 +118,11 @@ class Cart implements CartContract
     /**
      * Add a Item to the cart.
      *
-     * @param string|array $id Unique ID of the item|Item formatted as array|Array of items
-     * @param string $name Name of the item
-     * @param int $quantity Item quantity to add to the cart
-     * @param float $price Price of one item
-     * @param array $options Array of additional options, such as 'size' or 'color'
+     * @param string|array $id       Unique ID of the item|Item formatted as array|Array of items
+     * @param string       $name     Name of the item
+     * @param int          $quantity Item quantity to add to the cart
+     * @param float        $price    Price of one item
+     * @param array        $options  Array of additional options, such as 'size' or 'color'
      *
      * @return Item
      */
@@ -157,16 +157,16 @@ class Cart implements CartContract
     /**
      * Add a subItem to the cart.
      *
-     * @param string|array $id Unique ID of the item|Item formatted as array|Array of items
-     * @param string $name Name of the item
-     * @param int $quantity Item qty to add to the cart
-     * @param float $price Price of one item
-     * @param array $options Array of additional options, such as 'size' or 'color'
-     * @param string $parent
+     * @param string|array $id       Unique ID of the item|Item formatted as array|Array of items
+     * @param string       $name     Name of the item
+     * @param int          $quantity Item qty to add to the cart
+     * @param float        $price    Price of one item
+     * @param array        $options  Array of additional options, such as 'size' or 'color'
+     * @param string       $parent
      *
      * @return Item
      */
-    public function addSubItem($id, $name = null, $quantity = null, $price = null, array $options = [], string $parent): Item
+    public function addSubItem($id, $name, $quantity, $price, array $options, string $parent): Item
     {
         $parentItem = $this->get($parent);
 
@@ -191,17 +191,17 @@ class Cart implements CartContract
         $this->updateInstance($cart);
 
         return $subItem;
-
     }
 
     /**
      * Update the quantity or attributes of one item of the cart.
      *
-     * @param string $rowId The rowId of the item you want to update
+     * @param string    $rowId     The rowId of the item you want to update
      * @param int|array $attribute New quantity of the item|array of attributes to update
      *
-     * @return Item
      * @throws \DarthSoup\Cart\Exceptions\InvalidRowIdException
+     *
+     * @return Item
      */
     public function update($rowId, $attribute)
     {
@@ -226,6 +226,7 @@ class Cart implements CartContract
 
         if ($item->quantity <= 0) {
             $this->remove($item->rowId);
+
             return;
         }
 
@@ -264,6 +265,7 @@ class Cart implements CartContract
      * Get a item of the cart by its ID.
      *
      * @param string $rowId
+     *
      * @return Item
      */
     public function get($rowId)
@@ -273,6 +275,7 @@ class Cart implements CartContract
         if (!$cart->has($rowId)) {
             throw new InvalidRowIdException("The cart does not contain rowId {$rowId}.");
         }
+
         return $cart->get($rowId);
     }
 
@@ -349,6 +352,7 @@ class Cart implements CartContract
      * Search if the cart has a item.
      *
      * @param \Closure $search
+     *
      * @return CartCollection
      */
     public function search(\Closure $search): CartCollection
@@ -359,7 +363,7 @@ class Cart implements CartContract
     }
 
     /**
-     * Check if Collection is empty
+     * Check if Collection is empty.
      *
      * @return bool
      */
@@ -393,13 +397,14 @@ class Cart implements CartContract
     }
 
     /**
-     * Create a Item
+     * Create a Item.
      *
      * @param Item|array|string $id
-     * @param string $name
-     * @param int $quantity
-     * @param float $price
-     * @param array $options
+     * @param string            $name
+     * @param int               $quantity
+     * @param float             $price
+     * @param array             $options
+     *
      * @return Item
      */
     protected function buildItem($id, $name, $quantity, $price, array $options = []): Item
@@ -435,7 +440,9 @@ class Cart implements CartContract
      */
     protected function isMulti($id)
     {
-        if (!is_array($id)) return false;
+        if (!is_array($id)) {
+            return false;
+        }
 
         return is_array(head($id));
     }
