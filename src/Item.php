@@ -3,11 +3,11 @@
 namespace DarthSoup\Cart;
 
 use Carbon\Carbon;
-use DarthSoup\Cart\Contracts\ItemContract;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use DarthSoup\Cart\Contracts\ItemContract;
+use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * Item Class.
@@ -40,7 +40,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      *
      * @var int
      */
-    public $quantity;
+    public $quantity = 1;
 
     /**
      * The price without TAX of the cart item.
@@ -52,16 +52,19 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * The options for this cart item.
      *
-     * @var array
+     * @var ItemOptions
      */
     public $options;
 
     /**
-     * The Collection for the subitems.
-     *
-     * @var SubItemCollection
+     * @var Collection
      */
-    public $subItems;
+    public $subItems = [];
+
+    /**
+     * @var bool
+     */
+    public $subItem = false;
 
     /**
      * Created at.
@@ -78,18 +81,18 @@ class Item implements ItemContract, Arrayable, Jsonable
     protected $updated_at;
 
     /**
-     * The FQN of the associated model.
-     *
-     * @var string|null
-     */
-    protected $associatedModel;
-
-    /**
      * The tax rate for the cart item.
      *
      * @var int|float
      */
     protected $taxRate = 0;
+
+    /**
+     * The FQN of the associated model.
+     *
+     * @var string|null
+     */
+    protected $associatedModel;
 
     /**
      * CartItem constructor.
@@ -112,9 +115,9 @@ class Item implements ItemContract, Arrayable, Jsonable
         $this->rowId = $this->generateRowId($id, $options);
         $this->id = $id;
         $this->name = $name;
-        $this->price = (float) $price;
-        $this->options = new CartItemOptions($options);
-        $this->subItems = new SubItemCollection();
+        $this->price = $price;
+        $this->options = new ItemOptions($options);
+        $this->subItems = new Collection();
         $this->created_at = $this->freshTimestamp();
         $this->updated_at = $this->freshTimestamp();
     }
@@ -128,7 +131,9 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     public function associate($model)
     {
-        $this->associatedModel = is_string($model) ? $model : get_class($model);
+        $this->associatedModel = \is_string($model)
+            ? $model
+            : \get_class($model);
 
         return $this;
     }
@@ -138,9 +143,11 @@ class Item implements ItemContract, Arrayable, Jsonable
      *
      * @param Item $subItem
      */
-    public function addSubItem(Item $subItem)
+    public function addSubItem(self $subItem)
     {
-        $this->subItems->put($subItem->rowId, $subItem);
+        $subItem->subItem = true;
+
+        $this->subItems->put($subItem->getRowId(), $subItem);
 
         $this->updated_at = $this->freshTimestamp();
     }
@@ -148,11 +155,36 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * @param Item $subItem
      */
-    public function removeSubItem(Item $subItem)
+    public function removeSubItem(self $subItem)
     {
         $this->subItems->forget($subItem->rowId);
 
         $this->updated_at = $this->freshTimestamp();
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getSubItems()
+    {
+        return $this->subItems;
+    }
+
+    /**
+     * @param string $rowId
+     * @return Item
+     */
+    public function getSubItem(string $rowId)
+    {
+        return $this->subItems->get($rowId);
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasSubItems()
+    {
+        return ! $this->subItems->isEmpty();
     }
 
     /**
@@ -168,9 +200,8 @@ class Item implements ItemContract, Arrayable, Jsonable
         $this->quantity = Arr::get($attributes, 'quantity', $this->quantity);
         $this->name = Arr::get($attributes, 'name', $this->name);
         $this->price = Arr::get($attributes, 'price', $this->price);
-        $this->priceTax = $this->price + $this->tax;
         $this->options = $this->options->merge(
-            new CartItemOptions(Arr::get($attributes, 'options', $this->options))
+            new ItemOptions(Arr::get($attributes, 'options', $this->options))
         );
 
         $this->updated_at = $this->freshTimestamp();
@@ -193,7 +224,6 @@ class Item implements ItemContract, Arrayable, Jsonable
         $this->name = $name ?? $this->name;
         $this->quantity = $quantity ?? $this->quantity;
         $this->price = $price ?? $this->price;
-        $this->priceTax = $price + $this->tax;
         $this->options = $this->options->merge($options);
 
         $this->updated_at = $this->freshTimestamp();
@@ -262,9 +292,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     protected function generateRowId(string $id, array $options)
     {
-        $options = Arr::sortRecursive($options);
-
-        return md5($id.serialize($options));
+        return app('cart.hash')->hash($id, $options);
     }
 
     /**
@@ -280,9 +308,11 @@ class Item implements ItemContract, Arrayable, Jsonable
             'name'       => $this->name,
             'quantity'   => $this->quantity,
             'price'      => (float) $this->price,
-            'options'    => $this->options->toArray(),
+            'priceTax'   => $this->priceTax,
             'tax'        => $this->tax,
+            'options'    => $this->options->toArray(),
             'subtotal'   => $this->subtotal,
+            'subItems'   => $this->getSubItems()->toArray(),
             'model'      => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
             'created_at' => $this->created_at->getTimestamp(),
             'updated_at' => $this->updated_at->getTimestamp(),
@@ -302,11 +332,11 @@ class Item implements ItemContract, Arrayable, Jsonable
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Model
+     * @return bool
      */
-    public function getModel()
+    public function isSubItem(): bool
     {
-        return with(new $this->associatedModel())->find($this->id);
+        return $this->subItem;
     }
 
     /**
@@ -315,6 +345,14 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function isAssociated(): bool
     {
         return isset($this->associatedModel);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    public function getModel()
+    {
+        return with(new $this->associatedModel())->find($this->id);
     }
 
     /**

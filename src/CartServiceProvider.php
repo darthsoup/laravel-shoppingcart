@@ -16,7 +16,9 @@ class CartServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        $this->publishes([
+            dirname(__DIR__).'/config/cart.php' => config_path('cart.php'),
+        ], 'config');
     }
 
     /**
@@ -26,8 +28,17 @@ class CartServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->mergeConfigFrom(dirname(__DIR__).'/config/cart.php', 'cart');
+
+        $this->app->singleton('cart.hash', function ($app) {
+            $config = $app['config'];
+            $class = $config->get('cart')['hasher'];
+
+            return new $class;
+        });
+
         $this->app->singleton('cart', function ($app) {
-            return new Cart($app['session'], $app['events']);
+            return new Cart($app['session'], $app['events'], $app['cart.hash']);
         });
     }
 }

@@ -1,19 +1,19 @@
 ## Laravel Cart
 
-[![Build Status](https://travis-ci.org/darthsoup/laravel-shoppingcart.svg?branch=master)](https://travis-ci.org/darthsoup/laravel-shopsauceart)
+[![Build Status](https://travis-ci.org/darthsoup/laravel-shoppingcart.svg?branch=master)](https://travis-ci.org/darthsoup/laravel-shoppingcart)
 [![Total Downloads](https://poser.pugx.org/darthsoup/shoppingcart/downloads)](https://packagist.org/packages/darthsoup/shoppingcart)
 
-An easy shoppingcart implementation for Laravel > 5.2 based on Gloudemans\Shoppingcart.
+An easy shoppingcart implementation for Laravel > 5.2.
+Based on the work of Gloudemans\Shoppingcart.
 
 ## Features
 
 This package for shopping carts provides these features:
 
 * Cart items can have subitems
-* Individual taxing for single items //todo
-* Custom hash algorithms for item identifiers //todo
-* Database Support //todo
-* Unit tests //todo
+* Custom hash algorithms for item identifiers
+* Individual taxing for single items # todo
+* Database Support # todo
 
 ## Installation
 
@@ -21,7 +21,7 @@ Install the package through [Composer](http://getcomposer.org/). Edit your proje
 
 ### Requirements
 
-This package needs at least Laravel 5.2 and PHP 7.0. It may be running on older version like Laravel 5.1 or 5.0 but it is untested.
+This package needs at least Laravel 5.2 and PHP 7.1.
 
 ### Install
 
@@ -30,6 +30,12 @@ First, you'll need to install the package via Composer:
 ```shell
 $ composer require darthsoup/shoppingcart
 ```
+
+### After Laravel 5.5
+
+You do not need to do anything else here
+
+### Before Laravel 5.5 
 
 Then, update `config/app.php` by adding an entry for the service provider.
 
@@ -90,12 +96,17 @@ Cart::add($item);
 
 ### Update one Item
 
-TODO
+```php
+Cart::update('rowId', [
+    'options' => [$field => $value]
+]);
+```
 
 ### Get One Cart Item
 
-TODO
-
+```php
+Cart::get('rowId');
+```
 
 ### Show Cart Content
 
@@ -113,7 +124,9 @@ Cart::destroy();
 
 ### Remove one Item
 
-TODO
+```php
+Cart::remove('rowId');
+```
 
 ### Total Price of all Items
 
@@ -124,13 +137,8 @@ Cart::total();
 ### Item Count
 
 ```php
-
- Cart::count();
+Cart::count();
 ```
-
-### Item Search
-
-TODO 
 
 ## SubItems
 
@@ -142,17 +150,17 @@ The `addSubItem` function works basically like `add` but it accepts a parent row
 to the item.
 
 ```php
-Cart::add('15', 'Hamburger', 1, 1.99, ['onion' => false]);
+$hamburger = Cart::add('15', 'Hamburger', 1, 1.99, ['onion' => false]);
 
 Cart::addSubItem('99', 'Extra Bacon', 1, 0.99, [], $hamburger->getRowId())
 ```
 
 ### Remove SubItem
 
-TODO 
-
+Just like removing normal ones, just include your subItem `rowId` and it will be removed from the parent
 
 ## Models
+
 A new feature is associating a model with the items in the cart. Let's say you have a `Product` model in your application. With the `associate()` method, you can tell the cart that an item in the cart, is associated to the `Product` model. 
 
 That way you can access your model right from the `CartCollection`!
@@ -179,7 +187,8 @@ The Cart package will throw exceptions if something goes wrong. This way it's ea
 | ------------------------------------- | --------------------------------------------------------------------------------- |
 | *InstanceException*                   | When no instance is passed to the instance() method                               |
 | *InvalidRowIdException*               | When the `$rowId` that got passed doesn't exists in the current cart              |
-| *ClassNotFoundException*              | When an class cannot found while association |
+| *InvalidQuantityException*            | When the quantity is outside the set limits                                       |
+| *ClassNotFoundException*              | When an class cannot found while association                                      |
 
 ## Events
 
@@ -188,8 +197,7 @@ The cart also has events build in. There are five events available for you to li
 | Event                          | Fired                                   |
 | ------------------------------ | --------------------------------------- |
 | cart.added($item)              | When a item is added                    |
-| cart.subitem.added($item)      | When a sub item is added                |
-| cart.subitem.removed($item)    | When a sub item is added                |
+| cart.subitem.added($item)      | When a sub item is added                |              |
 | cart.updated($rowId)           | When an item in the cart is updated     |
 | cart.removed($rowId)           | When an item is removed from the cart   |
 | cart.destroyed()               | When the cart is destroyed              |
