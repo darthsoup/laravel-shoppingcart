@@ -2,18 +2,23 @@
 
 namespace DarthSoup\Cart;
 
-use DarthSoup\Cart\Contracts\CartContract;
-use DarthSoup\Cart\Exceptions\InstanceException;
-use DarthSoup\Cart\Exceptions\InvalidRowIdException;
-use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\SessionManager;
+use DarthSoup\Cart\Contracts\CartContract;
+use DarthSoup\Cart\Contracts\HashContract;
+use Illuminate\Contracts\Events\Dispatcher;
+use DarthSoup\Cart\Exceptions\InvalidRowIdException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Cart Class.
  */
 class Cart implements CartContract
 {
+    /**
+     * Default Instance Const.
+     */
+    public const DEFAULT_INSTANCE = 'main';
+
     /**
      * Session class instance.
      *
@@ -36,17 +41,26 @@ class Cart implements CartContract
     protected $instance;
 
     /**
+     * Hasher.
+     *
+     * @var HashContract
+     */
+    protected $hash;
+
+    /**
      * Constructor.
      *
-     * @param \Illuminate\Session\SessionManager      $session
+     * @param \Illuminate\Session\SessionManager $session
      * @param \Illuminate\Contracts\Events\Dispatcher $event
+     * @param HashContract $hash
      */
-    public function __construct(SessionManager $session, Dispatcher $event)
+    public function __construct(SessionManager $session, Dispatcher $event, HashContract $hash)
     {
         $this->session = $session;
         $this->event = $event;
+        $this->hash = $hash;
 
-        $this->instance('main');
+        $this->instance(self::DEFAULT_INSTANCE);
     }
 
     /**
@@ -56,7 +70,7 @@ class Cart implements CartContract
      */
     protected function getInstance(): string
     {
-        return 'cart.'.$this->instance;
+        return $this->instance;
     }
 
     /**
@@ -73,44 +87,11 @@ class Cart implements CartContract
      * Set the current cart instance.
      *
      * @param string|null $instance
-     *
-     * @throws \DarthSoup\Cart\Exceptions\InstanceException
-     *
      * @return \DarthSoup\Cart\Cart
      */
-    public function instance($instance = null)
+    public function instance(string $instance = null)
     {
-        if (empty($instance)) {
-            throw new InstanceException();
-        }
-        $this->instance = $instance;
-
-        // Return self so the method is chainable
-        return $this;
-    }
-
-    /**
-     * Set the associated model.
-     *
-     * @param string $rowId
-     * @param string $model
-     *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
-     *
-     * @return Cart
-     */
-    public function associate($rowId, $model)
-    {
-        if (!class_exists($model)) {
-            throw new ModelNotFoundException("The supplied model {$model} does not exist.");
-        }
-        $cartItem = $this->get($rowId);
-        $cartItem->associate($model);
-
-        $content = $this->getContent();
-        $content->put($cartItem->rowId, $cartItem);
-
-        $this->updateInstance($content);
+        $this->instance = $instance ?: self::DEFAULT_INSTANCE;
 
         return $this;
     }
@@ -162,19 +143,19 @@ class Cart implements CartContract
      * @param int          $quantity Item qty to add to the cart
      * @param float        $price    Price of one item
      * @param array        $options  Array of additional options, such as 'size' or 'color'
-     * @param string       $parent
+     * @param string       $parentRowId
      *
      * @return Item
      */
-    public function addSubItem($id, $name, $quantity, $price, array $options, string $parent): Item
+    public function addSubItem($id, $name, $quantity, $price, array $options, string $parentRowId): Item
     {
-        $parentItem = $this->get($parent);
+        $parentItem = $this->get($parentRowId);
 
-        //if ($this->isMulti($id)) {
-        //    return array_map(function ($item) {
-        //        return $this->addSubItem($item);
-        //    }, $id);
-        //}
+        if ($this->isMulti($id)) {
+            return array_map(function ($item) {
+                return $this->addSubItem($item);
+            }, $id);
+        }
 
         $subItem = $this->buildItem($id, $name, $quantity, $price, $options);
 
@@ -205,32 +186,38 @@ class Cart implements CartContract
      */
     public function update($rowId, $attribute)
     {
-        $item = $this->get($rowId);
+        $cart = $this->getContent();
+        $item = $cart->find($rowId);
 
-        if (is_array($attribute)) {
+        if (\is_array($attribute)) {
             $item->updateFromArray($attribute);
         } else {
             $item->quantity = $attribute;
         }
 
-        $cart = $this->getContent();
-
-        if ($rowId !== $item->rowId) {
+        if ($rowId !== $item->getRowId()) {
             $cart->pull($rowId);
 
-            if ($cart->has($item->rowId)) {
-                $existingCartItem = $this->get($item->rowId);
+            if ($cart->has($item->getRowId())) {
+                $existingCartItem = $this->get($item->getRowId());
                 $item->setQuantity($existingCartItem->quantity + $item->quantity);
             }
         }
 
         if ($item->quantity <= 0) {
-            $this->remove($item->rowId);
+            $this->remove($item->getRowId());
 
             return;
         }
 
-        $cart->put($item->rowId, $item);
+        if ($item->isSubItem()) {
+            $origin = $cart->findSubItemOrigin($rowId);
+
+            $origin->removeSubItem($item);
+            $origin->addSubItem($item);
+        } else {
+            $cart->put($item->getRowId(), $item);
+        }
 
         // Fire the cart.updated event
         $this->event->fire('cart.updated', $rowId);
@@ -243,17 +230,21 @@ class Cart implements CartContract
     /**
      * Remove a row from the cart.
      *
-     * @param string $rowId The rowid of the item
+     * @param string $rowId The rowId of the item
      *
      * @return bool
      */
     public function remove($rowId)
     {
-        $item = $this->get($rowId);
-
         $cart = $this->getContent();
+        $item = $cart->find($rowId);
 
-        $cart->forget($item->rowId);
+        if ($item->isSubItem()) {
+            $cart->findSubItemOrigin($rowId)
+                ->removeSubItem($item);
+        } else {
+            $cart->forget($item->rowId);
+        }
 
         // Fire the cart.removed event
         $this->event->fire('cart.removed', $rowId);
@@ -271,12 +262,13 @@ class Cart implements CartContract
     public function get($rowId)
     {
         $cart = $this->getContent();
+        $item = $cart->find($rowId);
 
-        if (!$cart->has($rowId)) {
+        if (null === $item) {
             throw new InvalidRowIdException("The cart does not contain rowId {$rowId}.");
         }
 
-        return $cart->get($rowId);
+        return $item;
     }
 
     /**
@@ -288,7 +280,7 @@ class Cart implements CartContract
      */
     public function has($rowId): bool
     {
-        return $this->getContent()->has($rowId);
+        return null !== $this->getContent()->find($rowId);
     }
 
     /**
@@ -321,8 +313,27 @@ class Cart implements CartContract
      */
     public function total(): float
     {
-        return $this->getContent()->reduce(function ($total, Item $item) {
+        $content = $this->getContent()->flatItems();
+
+        return $content->reduce(function (float $total, Item $item) {
             return $total + ($item->quantity * $item->priceTax);
+        }, 0);
+    }
+
+    /**
+     * Get the subtotal (total - tax) of the items in the cart.
+     *
+     * @param int    $decimals
+     * @param string $decimalPoint
+     * @param string $thousandSeperator
+     * @return float
+     */
+    public function subtotal(): float
+    {
+        $content = $this->getContent()->flatItems();
+
+        return $content->reduce(function ($subTotal, Item $item) {
+            return $subTotal + ($item->quantity * $item->price);
         }, 0);
     }
 
@@ -333,7 +344,9 @@ class Cart implements CartContract
      */
     public function tax(): float
     {
-        return $this->getContent()->reduce(function ($tax, Item $item) {
+        $content = $this->getContent()->flatItems();
+
+        return $content->reduce(function (float $tax, Item $item) {
             return $tax + ($item->quantity * $item->tax);
         }, 0);
     }
@@ -343,9 +356,9 @@ class Cart implements CartContract
      *
      * @return int
      */
-    public function count() : int
+    public function count(): int
     {
-        return $this->getContent()->sum('quantity');
+        return $this->getContent()->flatItems()->sum('quantity');
     }
 
     /**
@@ -377,7 +390,7 @@ class Cart implements CartContract
      *
      * @return CartCollection
      */
-    private function getContent(): CartCollection
+    protected function getContent(): CartCollection
     {
         $cart = $this->session->has($this->getInstance())
             ? $this->session->get($this->getInstance())
@@ -390,8 +403,9 @@ class Cart implements CartContract
      * Update the cart.
      *
      * @param CartCollection $cart
+     * @return
      */
-    private function updateInstance($cart)
+    protected function updateInstance($cart)
     {
         return $this->session->put($this->getInstance(), $cart);
     }
@@ -415,10 +429,10 @@ class Cart implements CartContract
 
         if ($id instanceof Item) {
             $item = $id;
-            $arguments = func_get_args();
+            $arguments = \func_get_args();
             $arguments[0] = $item->id;
             $item->updateFromAttributes(...$arguments);
-        } elseif (is_array($id)) {
+        } elseif (\is_array($id)) {
             $item = Item::fromArray($id);
             $item->setQuantity($id['quantity']);
         } else {
@@ -426,9 +440,35 @@ class Cart implements CartContract
             $item->setQuantity($quantity);
         }
 
-        $item->setTaxRate(config('cart.tax', 19));
+        $item->setTaxRate(config('cart.tax'));
 
         return $item;
+    }
+
+    /**
+     * Set the associated model.
+     *
+     * @param string $rowId
+     * @param string $model
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     *
+     * @return Cart
+     */
+    public function associate($rowId, $model)
+    {
+        if (! class_exists($model)) {
+            throw (new ModelNotFoundException)->setModel($model);
+        }
+        $cartItem = $this->get($rowId);
+        $cartItem->associate($model);
+
+        $content = $this->getContent();
+        $content->put($cartItem->rowId, $cartItem);
+
+        $this->updateInstance($content);
+
+        return $this;
     }
 
     /**
@@ -440,10 +480,10 @@ class Cart implements CartContract
      */
     protected function isMulti($id)
     {
-        if (!is_array($id)) {
+        if (! \is_array($id)) {
             return false;
         }
 
-        return is_array(head($id));
+        return \is_array(head($id));
     }
 }

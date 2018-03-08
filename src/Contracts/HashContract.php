@@ -4,7 +4,15 @@ namespace DarthSoup\Cart\Contracts;
 
 interface HashContract
 {
-    public function getName(): string;
+    /**
+     * @param $id
+     * @param array $parameters
+     * @return string
+     */
+    public function hash($id, array $parameters): string;
 
-    public function hash(): string;
+    /**
+     * @return string
+     */
+    public function getName(): string;
 }
