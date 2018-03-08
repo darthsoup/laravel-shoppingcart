@@ -43,6 +43,7 @@ class ItemTest extends TestCase
                 'extra' => 'Onions',
             ],
             'tax' => 0.0,
+            'priceTax' => 10.0,
             'subtotal' => 20.0,
             'subItems' => [],
             'model' => null,
