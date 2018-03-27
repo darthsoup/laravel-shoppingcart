@@ -204,6 +204,10 @@ class Item implements ItemContract, Arrayable, Jsonable
             new ItemOptions(Arr::get($attributes, 'options', $this->options))
         );
 
+        if (array_get($attributes, 'generateRowId')) {
+            $this->rowId = $this->generateRowId($this->id, $this->options->toArray());
+        }
+
         $this->updated_at = $this->freshTimestamp();
     }
 
