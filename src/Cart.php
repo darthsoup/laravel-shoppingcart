@@ -128,7 +128,7 @@ class Cart implements CartContract
         // Insert item to Cart
         $cart->put($item->rowId, $item);
 
-        $this->event->fire('cart.added', $item);
+        $this->event->dispatch('cart.added', $item);
 
         $this->updateInstance($cart);
 
@@ -167,7 +167,7 @@ class Cart implements CartContract
         // Insert item to Cart
         $cart->put($parentItem->rowId, $parentItem);
 
-        $this->event->fire('cart.subitem.added', [$subItem, $parentItem]);
+        $this->event->dispatch('cart.subitem.added', [$subItem, $parentItem]);
 
         $this->updateInstance($cart);
 
@@ -220,7 +220,7 @@ class Cart implements CartContract
         }
 
         // Fire the cart.updated event
-        $this->event->fire('cart.updated', $rowId);
+        $this->event->dispatch('cart.updated', $rowId);
 
         $this->updateInstance($cart);
 
@@ -247,7 +247,7 @@ class Cart implements CartContract
         }
 
         // Fire the cart.removed event
-        $this->event->fire('cart.removed', $rowId);
+        $this->event->dispatch('cart.removed', $rowId);
 
         $this->updateInstance($cart);
     }
@@ -303,7 +303,7 @@ class Cart implements CartContract
         $this->updateInstance(null);
 
         // Fire the cart.destroyed event
-        $this->event->fire('cart.destroyed');
+        $this->event->dispatch('cart.destroyed');
     }
 
     /**
