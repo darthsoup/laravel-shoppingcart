@@ -11,6 +11,8 @@ class CartCollection extends Collection
 {
     /**
      * Returns a collection with all items and subitems merged together.
+     *
+     * @return CartCollection
      */
     public function flatItems()
     {

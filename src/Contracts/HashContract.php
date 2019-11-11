@@ -2,6 +2,9 @@
 
 namespace DarthSoup\Cart\Contracts;
 
+/**
+ * Interface HashContract
+ */
 interface HashContract
 {
     /**

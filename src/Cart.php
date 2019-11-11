@@ -2,12 +2,12 @@
 
 namespace DarthSoup\Cart;
 
-use Illuminate\Session\SessionManager;
 use DarthSoup\Cart\Contracts\CartContract;
 use DarthSoup\Cart\Contracts\HashContract;
-use Illuminate\Contracts\Events\Dispatcher;
 use DarthSoup\Cart\Exceptions\InvalidRowIdException;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Session\SessionManager;
 
 /**
  * Cart Class.
