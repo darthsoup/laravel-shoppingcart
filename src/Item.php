@@ -204,7 +204,7 @@ class Item implements ItemContract, Arrayable, Jsonable
             new ItemOptions(Arr::get($attributes, 'options', $this->options))
         );
 
-        if (array_get($attributes, 'generateRowId')) {
+        if (Arr::get($attributes, 'generateRowId')) {
             $this->rowId = $this->generateRowId($this->id, $this->options->toArray());
         }
 
