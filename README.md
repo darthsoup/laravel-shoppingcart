@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/darthsoup/laravel-shoppingcart.svg?branch=master)](https://travis-ci.org/darthsoup/laravel-shoppingcart)
 [![Total Downloads](https://poser.pugx.org/darthsoup/shoppingcart/downloads)](https://packagist.org/packages/darthsoup/shoppingcart)
+[![License](https://poser.pugx.org/darthsoup/shoppingcart/license)](https://packagist.org/packages/darthsoup/shoppingcart)
 
 An easy shoppingcart implementation for Laravel > 5.2.
 Based on the work of Gloudemans\Shoppingcart.
