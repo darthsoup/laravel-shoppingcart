@@ -45,7 +45,7 @@ class CartTest extends TestCase
         return new Cart(
             $this->app->make('session'),
             $this->app->make('events'),
-            $this->app->make('cart.hash')
+            $this->app->make('cart.hashfactory')
         );
     }
 

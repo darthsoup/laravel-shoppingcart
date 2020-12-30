@@ -27,15 +27,23 @@ class CartServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom( __DIR__ . '/../config/cart.php', 'cart');
 
-        $this->app->singleton('cart.hash', function ($app) {
-            $config = $app['config'];
-            $class = $config->get('cart')['hasher'];
-
-            return new $class;
+        $this->app->singleton('cart.hashfactory', function ($app) {
+            $hash = $app['config']->get('cart')['hasher'];
+            return (new HashFactory())->make($hash);
         });
+        $this->app->alias('cart.hashfactory', HashFactory::class);
 
         $this->app->singleton('cart', function ($app) {
-            return new Cart($app['session'], $app['events'], $app['cart.hash']);
+            return new Cart($app['session'], $app['events'], $app['cart.hashfactory']);
         });
+        $this->app->alias('cart', Cart::class);
+    }
+
+    public function provides()
+    {
+        return [
+            'cart.hashfactory',
+            'cart'
+        ];
     }
 }

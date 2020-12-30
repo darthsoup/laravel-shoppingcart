@@ -13,11 +13,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Item Hash
+    | Item RowId Hash
     |--------------------------------------------------------------------------
     |
+    | Hashers: "md5", "uuid", "randomstring"
     */
 
-    'hasher' => \DarthSoup\Cart\Hasher\Md5::class,
+    'hasher' => "md5"
 
 ];

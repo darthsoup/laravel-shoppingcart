@@ -3,19 +3,17 @@
 namespace DarthSoup\Cart;
 
 use DarthSoup\Cart\Contracts\Hasher as HashContract;
+use InvalidArgumentException;
 
-class HasherFactory
+class HashFactory
 {
     /**
+     * @param string $hasher
      * @return HashContract
      */
-    public function create(array $config)
+    public function make(string $hasher): HashContract
     {
-        if (!isset($config['hasher'])) {
-            throw new \InvalidArgumentException('A hasher must be specified.');
-        }
-
-        switch ($config['hasher']) {
+        switch ($hasher) {
             case 'md5':
                 return new Hasher\Md5();
             case 'uuid':
@@ -24,6 +22,6 @@ class HasherFactory
                 return new Hasher\RandomString();
         }
 
-        throw new \InvalidArgumentException('Unsupported Hasher ' . $config['hasher']);
+        throw new InvalidArgumentException("Unsupported hasher method [$hasher]");
     }
 }

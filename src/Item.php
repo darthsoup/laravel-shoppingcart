@@ -152,7 +152,7 @@ class Item implements ItemContract, Arrayable, Jsonable
     /**
      * @param Item $subItem
      */
-    public function removeSubItem(self $subItem)
+    public function forgetSubItem(self $subItem)
     {
         $this->subItems->forget($subItem->rowId);
 
@@ -294,7 +294,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     protected function generateRowId(string $id, array $options)
     {
-        return app('cart.hash')->make($id, $options);
+        return app('cart.hashfactory')->make($id, $options);
     }
 
     /**

@@ -40,7 +40,7 @@ class Cart
     protected $instance;
 
     /**
-     * Hasher.
+     * RowId Hashing Instance.
      *
      * @var Hasher
      */
@@ -211,7 +211,7 @@ class Cart
         if ($item->isSubItem()) {
             $origin = $cart->findSubItemOrigin($rowId);
 
-            $origin->removeSubItem($item);
+            $origin->forgetSubItem($item);
             $origin->addSubItem($item);
         } else {
             $cart->put($item->getRowId(), $item);
@@ -238,8 +238,10 @@ class Cart
         $item = $cart->find($rowId);
 
         if ($item->isSubItem()) {
-            $cart->findSubItemOrigin($rowId)
-                ->removeSubItem($item);
+            $origin = $cart->findSubItemOrigin($rowId);
+            if (null !== $origin) {
+                $origin->forgetSubItem($item);
+            }
         } else {
             $cart->forget($item->rowId);
         }
