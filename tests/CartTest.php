@@ -1,18 +1,18 @@
 <?php
 
-namespace DarthSoup\Cart\Tests;
+namespace DarthSoup\Tests\Cart;
 
 use DarthSoup\Cart\Cart;
-use Orchestra\Testbench\TestCase;
 use DarthSoup\Cart\CartServiceProvider;
+use DarthSoup\Cart\Item;
+use Orchestra\Testbench\TestCase;
 
-/**
- * Class CartTest.
- *
- * @author Kevin Krummnacker <kk@dogado.de>
- */
 class CartTest extends TestCase
 {
+    use CartAsserts;
+
+    const SECOND_INSTANCE = 'other';
+
     /**
      * Set the package service provider.
      *
@@ -35,14 +35,6 @@ class CartTest extends TestCase
         $app['config']->set('session.driver', 'array');
     }
 
-    /** @test */
-    public function it_has_a_default_instance()
-    {
-        $cart = $this->buildCart();
-
-        $this->assertEquals(Cart::DEFAULT_INSTANCE, $cart->getCurrentInstance());
-    }
-
     /**
      * Get an cart instance.
      *
@@ -55,5 +47,55 @@ class CartTest extends TestCase
             $this->app->make('events'),
             $this->app->make('cart.hash')
         );
+    }
+
+    public function testHasDefaultInstance()
+    {
+        $cart = $this->buildCart();
+
+        $this->assertEquals(Cart::DEFAULT_INSTANCE, $cart->getCurrentInstance());
+    }
+
+    public function testCanHaveMultipleInstances()
+    {
+        $cart = $this->buildCart();
+
+        $cart->add(new Item('1', 'Foo'));
+
+        $cart->instance(self::SECOND_INSTANCE)
+            ->add(new Item('2', 'Bar'));
+
+        $this->assertItemsInCart(1, $cart->instance(Cart::DEFAULT_INSTANCE));
+        $this->assertItemsInCart(1, $cart->instance(self::SECOND_INSTANCE));
+    }
+
+    public function testAddItemByClass()
+    {
+        $cart = $this->buildCart();
+
+        $cart->add(new Item('1', 'Foo'));
+
+        $this->assertEquals(1, $cart->count());
+    }
+
+    public function testAddItemByArray()
+    {
+        $cart = $this->buildCart();
+
+        $cart->add([
+            'id' => '1',
+            'name' => 'foobar'
+        ]);
+
+        $this->assertEquals(1, $cart->count());
+    }
+
+    public function testAddItemByAttributes()
+    {
+        $cart = $this->buildCart();
+
+        $cart->add('1', 'foobar');
+
+        $this->assertEquals(1, $cart->count());
     }
 }

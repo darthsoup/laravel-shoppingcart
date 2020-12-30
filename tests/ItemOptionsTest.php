@@ -1,10 +1,11 @@
 <?php
 
-namespace DarthSoup\Cart\Tests;
+namespace DarthSoup\Tests\Cart;
 
-use DarthSoup\Cart\Item;
-use Orchestra\Testbench\TestCase;
 use DarthSoup\Cart\CartServiceProvider;
+use DarthSoup\Cart\Item;
+use DarthSoup\Cart\ItemOptions;
+use Orchestra\Testbench\TestCase;
 
 class ItemOptionsTest extends TestCase
 {
@@ -19,8 +20,7 @@ class ItemOptionsTest extends TestCase
         return [CartServiceProvider::class];
     }
 
-    /** @test */
-    public function print_an_value_from_option_with__get()
+    public function testPrintAnValueFromOptionWithGet()
     {
         $extras = ['Onions', 'Bacon'];
 
@@ -29,5 +29,12 @@ class ItemOptionsTest extends TestCase
         ]);
 
         $this->assertEquals($item->options->extra, $extras);
+    }
+
+    public function testInstanceOfOptions()
+    {
+        $item = new Item(1, 'Hamburger');
+
+        $this->assertInstanceOf(ItemOptions::class, $item->options);
     }
 }

@@ -1,16 +1,11 @@
 <?php
 
-namespace DarthSoup\Cart\Tests;
+namespace DarthSoup\Tests\Cart;
 
+use DarthSoup\Cart\CartServiceProvider;
 use DarthSoup\Cart\Item;
 use Orchestra\Testbench\TestCase;
-use DarthSoup\Cart\CartServiceProvider;
 
-/**
- * Class CartTest.
- *
- * @author Kevin Krummnacker <kk@dogado.de>
- */
 class ItemTest extends TestCase
 {
     /**
@@ -24,14 +19,13 @@ class ItemTest extends TestCase
         return [CartServiceProvider::class];
     }
 
-    /** @test */
-    public function item_cast_to_an_array()
+    public function testItemCastToAnArray()
     {
         $item = new Item(1, 'Hamburger', 10.00, ['extra' => 'Onions']);
         $item->setQuantity(2);
 
-        $created_at = $item->created_at->getTimestamp();
-        $updated_at = $item->updated_at->getTimestamp();
+        $createdAt = $item->created_at->getTimestamp();
+        $updatedAt = $item->updated_at->getTimestamp();
 
         $this->assertEquals([
             'rowId' => '3bd1c331bfc795907057ba8bbf064034',
@@ -47,13 +41,12 @@ class ItemTest extends TestCase
             'subtotal' => 20.0,
             'subItems' => [],
             'model' => null,
-            'created_at' => $created_at,
-            'updated_at' => $updated_at,
+            'created_at' => $createdAt,
+            'updated_at' => $updatedAt,
         ], $item->toArray());
     }
 
-    /** @test */
-    public function item_print_the_price_with_tax()
+    public function testItemPrintThePriceWithTax()
     {
         $item = new Item(1, 'Hamburger', 10.00, ['extra' => 'Onions']);
         $item->setQuantity(1);
