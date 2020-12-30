@@ -2,8 +2,7 @@
 
 namespace DarthSoup\Cart;
 
-use DarthSoup\Cart\Contracts\CartContract;
-use DarthSoup\Cart\Contracts\HashContract;
+use DarthSoup\Cart\Contracts\Hasher;
 use DarthSoup\Cart\Exceptions\InvalidRowIdException;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -12,7 +11,7 @@ use Illuminate\Session\SessionManager;
 /**
  * Cart Class.
  */
-class Cart implements CartContract
+class Cart
 {
     /**
      * Default Instance Const.
@@ -43,7 +42,7 @@ class Cart implements CartContract
     /**
      * Hasher.
      *
-     * @var HashContract
+     * @var Hasher
      */
     protected $hash;
 
@@ -52,9 +51,9 @@ class Cart implements CartContract
      *
      * @param \Illuminate\Session\SessionManager $session
      * @param \Illuminate\Contracts\Events\Dispatcher $event
-     * @param HashContract $hash
+     * @param Hasher $hash
      */
-    public function __construct(SessionManager $session, Dispatcher $event, HashContract $hash)
+    public function __construct(SessionManager $session, Dispatcher $event, Hasher $hash)
     {
         $this->session = $session;
         $this->event = $event;
@@ -105,9 +104,9 @@ class Cart implements CartContract
      * @param float        $price    Price of one item
      * @param array        $options  Array of additional options, such as 'size' or 'color'
      *
-     * @return Item
+     * @return array|Item|Item[]
      */
-    public function add($id, $name = null, $quantity = null, $price = null, array $options = []): Item
+    public function add($id, $name = null, $quantity = null, $price = null, array $options = [])
     {
         // If the first parameter is an array we need to call the add() function again
         if ($this->isMulti($id)) {
@@ -177,14 +176,13 @@ class Cart implements CartContract
     /**
      * Update the quantity or attributes of one item of the cart.
      *
-     * @param string    $rowId     The rowId of the item you want to update
+     * @param string $rowId The rowId of the item you want to update
      * @param int|array $attribute New quantity of the item|array of attributes to update
      *
-     * @throws \DarthSoup\Cart\Exceptions\InvalidRowIdException
-     *
      * @return Item
+     * @throws InvalidRowIdException
      */
-    public function update($rowId, $attribute)
+    public function update(string $rowId, $attribute)
     {
         $cart = $this->getContent();
         $item = $cart->find($rowId);
@@ -234,7 +232,7 @@ class Cart implements CartContract
      *
      * @return bool
      */
-    public function remove($rowId)
+    public function remove(string $rowId)
     {
         $cart = $this->getContent();
         $item = $cart->find($rowId);
@@ -421,7 +419,7 @@ class Cart implements CartContract
      *
      * @return Item
      */
-    protected function buildItem($id, $name, $quantity, $price, array $options = []): Item
+    protected function buildItem($id, $name, $quantity, $price, $options = []): Item
     {
         // 1. Insert an prepared Item directly
         // 2. Create item by array
@@ -432,12 +430,10 @@ class Cart implements CartContract
             $arguments = \func_get_args();
             $arguments[0] = $item->id;
             $item->updateFromAttributes(...$arguments);
-        } elseif (\is_array($id)) {
+        } elseif (is_array($id)) {
             $item = Item::fromArray($id);
-            $item->setQuantity($id['quantity']);
         } else {
             $item = Item::fromAttributes($id, $name, $price, $options);
-            $item->setQuantity($quantity);
         }
 
         $item->setTaxRate(config('cart.tax'));
@@ -474,16 +470,16 @@ class Cart implements CartContract
     /**
      * Check if the array is a multidimensional array.
      *
-     * @param array $id The array to check
+     * @param array $items The array to check
      *
      * @return bool
      */
-    protected function isMulti($id)
+    protected function isMulti($items)
     {
-        if (! \is_array($id)) {
+        if (!is_array($items)) {
             return false;
         }
 
-        return \is_array(head($id));
+        return is_array(head($items));
     }
 }

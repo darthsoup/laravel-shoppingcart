@@ -10,11 +10,11 @@ use Illuminate\Support\Collection;
 class ItemOptions extends Collection
 {
     /**
-     * @param string $arg
+     * @param string $attribute
      * @return mixed
      */
-    public function __get($arg)
+    public function __get($attribute)
     {
-        return $this->get($arg);
+        return $this->get($attribute);
     }
 }

@@ -4,9 +4,6 @@ namespace DarthSoup\Cart;
 
 use Illuminate\Support\ServiceProvider;
 
-/**
- * Class CartServiceProvider.
- */
 class CartServiceProvider extends ServiceProvider
 {
     /**
@@ -17,7 +14,7 @@ class CartServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            dirname(__DIR__).'/config/cart.php' => config_path('cart.php'),
+            __DIR__ . '/../config/cart.php' => config_path('cart.php'),
         ], 'config');
     }
 
@@ -28,7 +25,7 @@ class CartServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->mergeConfigFrom(dirname(__DIR__).'/config/cart.php', 'cart');
+        $this->mergeConfigFrom( __DIR__ . '/../config/cart.php', 'cart');
 
         $this->app->singleton('cart.hash', function ($app) {
             $config = $app['config'];

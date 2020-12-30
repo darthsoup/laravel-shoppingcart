@@ -1,13 +1,10 @@
 <?php
 
-namespace DarthSoup\Cart\Hashes;
+namespace DarthSoup\Cart\Hasher;
 
-use DarthSoup\Cart\Contracts\HashContract;
+use DarthSoup\Cart\Contracts\Hasher as HashContract;
 use Illuminate\Support\Str;
 
-/**
- * Hashes Item Id with random strings.
- */
 class RandomString implements HashContract
 {
     /**
@@ -15,7 +12,7 @@ class RandomString implements HashContract
      * @param array $parameters
      * @return string
      */
-    public function hash($id, array $parameters): string
+    public function make($id, array $parameters): string
     {
         return Str::random();
     }

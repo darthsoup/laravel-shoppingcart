@@ -3,15 +3,12 @@
 namespace DarthSoup\Cart;
 
 use Carbon\Carbon;
+use DarthSoup\Cart\Contracts\ItemContract;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use DarthSoup\Cart\Contracts\ItemContract;
-use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Contracts\Support\Arrayable;
 
-/**
- * Item Class.
- */
 class Item implements ItemContract, Arrayable, Jsonable
 {
     /**
@@ -242,9 +239,10 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     public static function fromArray(array $attributes)
     {
+        $price = Arr::get($attributes, 'price');
         $options = Arr::get($attributes, 'options', []);
 
-        return new self($attributes['id'], $attributes['name'], $attributes['price'], $options);
+        return new self($attributes['id'], $attributes['name'], $price, $options);
     }
 
     /**
@@ -257,7 +255,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      *
      * @return Item
      */
-    public static function fromAttributes(string $id, string $name, float $price = null, array $options = [])
+    public static function fromAttributes($id, string $name, float $price = null, array $options = [])
     {
         return new self($id, $name, $price, $options);
     }
@@ -296,7 +294,7 @@ class Item implements ItemContract, Arrayable, Jsonable
      */
     protected function generateRowId(string $id, array $options)
     {
-        return app('cart.hash')->hash($id, $options);
+        return app('cart.hash')->make($id, $options);
     }
 
     /**
@@ -307,17 +305,17 @@ class Item implements ItemContract, Arrayable, Jsonable
     public function toArray()
     {
         return [
-            'rowId'      => $this->rowId,
-            'id'         => $this->id,
-            'name'       => $this->name,
-            'quantity'   => $this->quantity,
-            'price'      => (float) $this->price,
-            'priceTax'   => $this->priceTax,
-            'tax'        => $this->tax,
-            'options'    => $this->options->toArray(),
-            'subtotal'   => $this->subtotal,
-            'subItems'   => $this->getSubItems()->toArray(),
-            'model'      => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
+            'rowId' => $this->rowId,
+            'id' => $this->id,
+            'name' => $this->name,
+            'quantity' => $this->quantity,
+            'price' => (float)$this->price,
+            'priceTax' => $this->priceTax,
+            'tax' => $this->tax,
+            'options' => $this->options->toArray(),
+            'subtotal' => $this->subtotal,
+            'subItems' => $this->getSubItems()->toArray(),
+            'model' => null === $this->associatedModel ? $this->associatedModel : $this->model->toArray(),
             'created_at' => $this->created_at->getTimestamp(),
             'updated_at' => $this->updated_at->getTimestamp(),
         ];

@@ -1,13 +1,10 @@
 <?php
 
-namespace DarthSoup\Cart\Hashes;
+namespace DarthSoup\Cart\Hasher;
 
 use Illuminate\Support\Arr;
-use DarthSoup\Cart\Contracts\HashContract;
+use DarthSoup\Cart\Contracts\Hasher as HashContract;
 
-/**
- * Hashes Item with MD5.
- */
 class Md5 implements HashContract
 {
     /**
@@ -15,7 +12,7 @@ class Md5 implements HashContract
      * @param array $parameters
      * @return string
      */
-    public function hash($id, array $parameters): string
+    public function make($id, array $parameters): string
     {
         return md5($id . serialize(Arr::sortRecursive($parameters)));
     }

@@ -1,13 +1,10 @@
 <?php
 
-namespace DarthSoup\Cart\Hashes;
+namespace DarthSoup\Cart\Hasher;
 
-use DarthSoup\Cart\Contracts\HashContract;
-use Illuminate\Support\Str;
+use DarthSoup\Cart\Contracts\Hasher as HashContract;
+use Ramsey\Uuid\Uuid as UuidFactory;
 
-/**
- * Hashes Item id with Uuid
- */
 class Uuid implements HashContract
 {
     /**
@@ -15,9 +12,9 @@ class Uuid implements HashContract
      * @param array $parameters
      * @return string
      */
-    public function hash($id, array $parameters): string
+    public function make($id, array $parameters): string
     {
-        return Str::random();
+        return UuidFactory::uuid4();
     }
 
     /**

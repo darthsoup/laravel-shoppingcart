@@ -2,9 +2,7 @@
 
 namespace DarthSoup\Cart;
 
-use DarthSoup\Cart\Hashes\Md5;
-use DarthSoup\Cart\Hashes\Uuid;
-use DarthSoup\Cart\Hashes\RandomString;
+use DarthSoup\Cart\Contracts\Hasher as HashContract;
 
 class HasherFactory
 {
@@ -19,11 +17,11 @@ class HasherFactory
 
         switch ($config['hasher']) {
             case 'md5':
-                return new Md5();
+                return new Hasher\Md5();
             case 'uuid':
-                return new Uuid();
+                return new Hasher\Uuid();
             case 'randomstring':
-                return new RandomString();
+                return new Hasher\RandomString();
         }
 
         throw new \InvalidArgumentException('Unsupported Hasher ' . $config['hasher']);

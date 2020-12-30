@@ -4,9 +4,6 @@ namespace DarthSoup\Cart;
 
 use Illuminate\Support\Collection;
 
-/**
- * Class CartCollection.
- */
 class CartCollection extends Collection
 {
     /**
