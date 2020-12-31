@@ -1,65 +1,38 @@
 ## Laravel Cart
 
-[![Build Status](https://travis-ci.org/darthsoup/laravel-shoppingcart.svg?branch=master)](https://travis-ci.org/darthsoup/laravel-shoppingcart)
 [![Total Downloads](https://poser.pugx.org/darthsoup/shoppingcart/downloads)](https://packagist.org/packages/darthsoup/shoppingcart)
 [![License](https://poser.pugx.org/darthsoup/shoppingcart/license)](https://packagist.org/packages/darthsoup/shoppingcart)
 
-An easy shoppingcart implementation for Laravel > 5.2.
-Based on the work of Gloudemans\Shoppingcart.
+An easy shoppingcart implementation for Laravel > 6.
+Based on the work of [Gloudemans\Shoppingcart](https://github.com/Crinsane/LaravelShoppingcart).
 
 ## Features
 
 This package for shopping carts provides these features:
 
-* Cart items can have subitems
-* Custom hash algorithms for item identifiers
-* Individual taxing for single items # todo
-* Database Support # todo
+* [x] Cart items can have subitems
+* [x] Custom hash algorithms for item identifiers
+* [ ] Individual taxing for single items
+* [ ] Database Support
 
 ## Installation
 
-Install the package through [Composer](http://getcomposer.org/). Edit your project's `composer.json` file by adding:
+To get the latest version, simply require the library using [Composer](http://getcomposer.org/).
 
-### Requirements
-
-This package needs at least Laravel 5.2 and PHP 7.1.
-
-### Install
-
-First, you'll need to install the package via Composer:
-
-```shell
+```bash
 $ composer require darthsoup/shoppingcart
 ```
+Once installed, you'll need to publish the vendor assets
 
-### After Laravel 5.5
-
-You do not need to do anything else here
-
-### Before Laravel 5.5 
-
-Then, update `config/app.php` by adding an entry for the service provider.
-
-```php
-'providers' => [
-    // ...
-    DarthSoup\Cart\CartServiceProvider::class,
-];
+```bash
+$ php artisan vendor:publish --provider="DarthSoup\Cart\CartServiceProvider" --tag="config"
 ```
 
-If you want to access the Cart via Facade than add a new line to the `aliases` array
-
-```php
-'aliases' => [
-    // ...
-    'Cart' => DarthSoup\Cart\Facades\Cart::class,
-];
-```
+This will create `cart.php` config file.
 
 ## Usage
 
 The cart package provides you the following methods to use:
-
 
 ### Add Item
 
@@ -99,7 +72,7 @@ Cart::add($item);
 
 ```php
 Cart::update('rowId', [
-    'options' => [$field => $value]
+    'options' => ['foo' => 'bar']
 ]);
 ```
 
@@ -123,7 +96,7 @@ Cart::content();
 Cart::destroy();
 ```
 
-### Remove one Item
+### Remove one Item or Subitem
 
 ```php
 Cart::remove('rowId');
@@ -143,7 +116,7 @@ Cart::count();
 
 ## SubItems
 
-This package also includes the functionality to add Subitems by adding them to an additional Collection in the Item
+This package also includes the functionality to add Subitems by adding them to an additional collection in the Item
 
 ### Add SubItem
 
@@ -153,7 +126,7 @@ to the item.
 ```php
 $hamburger = Cart::add('15', 'Hamburger', 1, 1.99, ['onion' => false]);
 
-Cart::addSubItem('99', 'Extra Bacon', 1, 0.99, [], $hamburger->getRowId())
+Cart::addSubItem('99', 'Extra Bacon', 1, 0.99, [], $hamburger->getRowId());
 ```
 
 ### Remove SubItem
@@ -175,7 +148,7 @@ Cart::associate(\App\Product::class)->add('15', 'Hamburger', 1, 9.99, ['extra_sa
 
 $content = Cart::content();
 
-foreach($content as $row) {
+foreach ($content as $row) {
 	echo 'You have ' . $row->quantity . ' items of ' . $row->model->name . ' with description: "' . $row->model->description . '" in your cart.';
 }
 ```
