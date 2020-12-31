@@ -2,9 +2,8 @@
 
 namespace DarthSoup\Cart\Exceptions;
 
-/**
- * InstanceException.
- */
-class InstanceException extends \Exception
+use Exception;
+
+class InstanceException extends Exception
 {
 }
